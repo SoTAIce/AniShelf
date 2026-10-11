@@ -1,0 +1,12 @@
+# Personal account data and generated playback state
+/data/bilibili.json*
+/data/age-playback.json*
+
+# Local dependencies and build metadata
+/frontend/node_modules/
+/frontend/tsconfig.tsbuildinfo
+.DS_Store
+*.log
+
+# Local screenshots may contain viewing history or account details
+/*.png
