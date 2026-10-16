@@ -1,6 +1,11 @@
 # Personal account data and generated playback state
 /data/bilibili.json*
 /data/age-playback.json*
+/data/mobile-key
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
 
 # Local dependencies and build metadata
 /frontend/node_modules/

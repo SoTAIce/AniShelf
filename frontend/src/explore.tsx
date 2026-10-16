@@ -1,11 +1,12 @@
 import {useEffect,useState} from 'react';
+import {apiFetch} from './connection';
 import {ArrowRight,BookmarkSimple,MagnifyingGlass,Star,X,Info,ChartLineUp} from '@phosphor-icons/react';
 import type {Anime} from './main';
 type SearchResult={items:Anime[];total:number;offset:number;limit:number;query:string;fetchedAt:string;source:string};
 export function Explore({saved,onSave,onOpen,onRanking}:{saved:number[];onSave:(a:Anime)=>void;onOpen:(a:Anime)=>void;onRanking:()=>void}){
  const [query,setQuery]=useState('');const [search,setSearch]=useState('');const [year,setYear]=useState(new Date().getFullYear());const [offset,setOffset]=useState(0);const [result,setResult]=useState<SearchResult>();const [busy,setBusy]=useState(true);const [error,setError]=useState('');const [retry,setRetry]=useState(0);
  useEffect(()=>{const timer=setTimeout(()=>{setSearch(query.trim());setOffset(0)},350);return()=>clearTimeout(timer)},[query]);
- useEffect(()=>{let active=true;const ctl=new AbortController();setBusy(true);setError('');const params=new URLSearchParams({q:search,year:String(year),offset:String(offset),limit:'24'});fetch(`/api/explore?${params}`,{signal:ctl.signal}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error||'动漫库暂时不可用');if(active)setResult(d)}).catch(e=>{if(active&&e.name!=='AbortError')setError('动漫库暂时无法读取，请稍后重试。')}).finally(()=>{if(active)setBusy(false)});return()=>{active=false;ctl.abort()}},[search,year,offset,retry]);
+ useEffect(()=>{let active=true;const ctl=new AbortController();setBusy(true);setError('');const params=new URLSearchParams({q:search,year:String(year),offset:String(offset),limit:'24'});apiFetch(`/api/explore?${params}`,{signal:ctl.signal}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error||'动漫库暂时不可用');if(active)setResult(d)}).catch(e=>{if(active&&e.name!=='AbortError')setError('动漫库暂时无法读取，请稍后重试。')}).finally(()=>{if(active)setBusy(false)});return()=>{active=false;ctl.abort()}},[search,year,offset,retry]);
  const current=new Date().getFullYear();
  return <section className="explore" aria-labelledby="explore-title"><div className="explore-head"><div><span className="eyebrow">FIND YOUR NEXT ANIME</span><h2 id="explore-title">想看的番，都在这里找。</h2><p>搜索 Bangumi 动漫库，不受精选榜单收录范围限制。不同季与分割放送分别展示。</p></div><button className="explore-ranking" onClick={onRanking}><ChartLineUp size={17}/>看综合评分榜<ArrowRight size={16}/></button></div>
  <div className="explore-search"><MagnifyingGlass size={22}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="试试：无职转生第2季、芙莉莲、孤独摇滚" aria-label="搜索全部动漫" autoComplete="off"/>{query&&<button onClick={()=>setQuery('')} aria-label="清除动漫搜索"><X size={19}/></button>}</div>

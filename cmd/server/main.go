@@ -3,6 +3,7 @@ package main
 import (
 	"anime-shelf/internal/bilibili"
 	"anime-shelf/internal/catalog"
+	"anime-shelf/internal/mobile"
 	"anime-shelf/internal/playback"
 	"context"
 	"encoding/json"
@@ -27,6 +28,10 @@ func main() {
 	refresh := flag.Bool("refresh", false, "refresh source ratings then exit")
 	interval := flag.Duration("refresh-interval", 30*time.Minute, "background rating refresh interval; 0 disables")
 	flag.Parse()
+	mobileKey := os.Getenv("ANISHELF_MOBILE_KEY")
+	if mobile.NeedsKey(*addr) && len(mobileKey) < 16 {
+		log.Fatal("局域网监听需要至少 16 位 ANISHELF_MOBILE_KEY")
+	}
 	serviceCtx, stopService := context.WithCancel(context.Background())
 	defer stopService()
 	store, e := catalog.Load(*data)
@@ -360,12 +365,12 @@ func main() {
 		}
 		fs.ServeHTTP(w, r)
 	})
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := mobile.NewGateway(mobileKey).Wrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; media-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'")
 		mux.ServeHTTP(w, r)
-	})
+	}))
 	srv := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
@@ -388,6 +393,9 @@ func respond(w http.ResponseWriter, v any) {
 }
 
 func sameOrigin(r *http.Request) bool {
+	if mobile.IsAuthorized(r) {
+		return true
+	}
 	if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
 		return false
 	}

@@ -24,6 +24,24 @@ pnpm build
 
 后端检查：`go test ./...`。
 
+## Android / iPhone 应用
+
+`frontend/android` 与 `frontend/ios` 是基于官方 [Capacitor](https://capacitorjs.com/docs/getting-started) 生成的独立应用工程，内置本站界面和 AniShelf 图标。手机首次启动会要求输入电脑端地址与连接密钥。手机端通过可复用的 `frontend/src/connection.ts` 客户端调用 Go 接口；片源查找、B 站同步和视频代理仍在电脑上的 Go 服务中运行，因此电脑需要保持开机且手机可访问它。手机与电脑的浏览器收藏、手动偏好保存在各自设备中，不会自动同步；B 站追番记录由同一台 Go 服务提供。
+
+在电脑上运行 `./start-mobile-server.sh`，终端会显示局域网地址与首次生成的连接密钥。密钥保存在本机 `data/mobile-key`，不会提交到仓库；后续启动继续使用同一密钥。手机与电脑连接同一个可信 Wi-Fi，在应用中输入这两个值即可。默认的 `go run ./cmd/server` 仍只监听电脑本机；手动在非本机地址监听时，必须设置至少 16 位 `ANISHELF_MOBILE_KEY`。局域网 HTTP 未加密，不适合公共 Wi-Fi；跨网络使用请配置 HTTPS。
+
+更新应用工程：
+
+```sh
+cd frontend
+pnpm install
+pnpm mobile:sync
+pnpm mobile:android  # 用 Android Studio 构建、安装
+pnpm mobile:ios      # 用 Xcode 配置签名、构建、安装
+```
+
+需要 Node.js 22+；Android 构建需要 Android Studio 和 Android SDK，iPhone 构建需要完整 Xcode。仓库提供可构建的工程，但目前未附 APK / IPA，且尚未在真机上验证不同机型的视频播放。[Capacitor 环境要求](https://capacitorjs.com/docs/getting-started/environment-setup) 可用于检查本机工具链。应用采用局域网连接模式，尚未配置应用商店发布所需的公网 HTTPS 与分发签名。
+
 ## 实时采集
 
 服务运行期间，默认每 30 分钟尝试更新。页面“立即更新”可主动启动抓取，并每 4 秒读取进度；后台完成后片库与推荐自动刷新。抓取任务不会叠加，手动触发至少间隔一分钟。通过 `-refresh-interval 10m` 调整周期，`-refresh-interval 0` 关闭自动采集。
